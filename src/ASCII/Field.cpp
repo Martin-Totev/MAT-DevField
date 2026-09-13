@@ -203,6 +203,8 @@ public:
                     SDL_LOGICAL_PRESENTATION_LETTERBOX),
                 "Could not configure MAT DevField logical presentation"
             );
+            logicalWidth_ = logicalWidth;
+            logicalHeight_ = logicalHeight;
             RequireSdl(
                 SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND),
                 "Could not configure MAT DevField colour blending"
@@ -270,6 +272,20 @@ public:
     void Present()
     {
         EnsureOwnerThread();
+
+        // Frame().Resize() changes the canvas, not the native window size.
+        // Refresh the mapping so the complete new framebuffer still fits.
+        const int logicalWidth = CheckedPixelDimension(frame_.Width(), GlyphWidth, 1);
+        const int logicalHeight = CheckedPixelDimension(frame_.Height(), GlyphHeight, 1);
+        if (logicalWidth != logicalWidth_ || logicalHeight != logicalHeight_) {
+            RequireSdl(
+                SDL_SetRenderLogicalPresentation(renderer_, logicalWidth, logicalHeight,
+                    SDL_LOGICAL_PRESENTATION_LETTERBOX),
+                "Could not resize MAT DevField logical presentation"
+            );
+            logicalWidth_ = logicalWidth;
+            logicalHeight_ = logicalHeight;
+        }
 
         RequireSdl(
             SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255),
@@ -382,6 +398,8 @@ private:
     SDL_Window* window_{nullptr};
     SDL_Renderer* renderer_{nullptr};
     SDL_WindowID windowId_{0};
+    int logicalWidth_{0};
+    int logicalHeight_{0};
     std::array<bool, KeyCount> currentKeys_{};
     std::array<bool, KeyCount> previousKeys_{};
     bool open_{true};

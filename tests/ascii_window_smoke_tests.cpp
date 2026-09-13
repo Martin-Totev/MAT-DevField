@@ -20,6 +20,20 @@ int main()
             return 1;
         }
 
+        // Changing canvas resolution must continue to present successfully,
+        // including cells at the new far edge, without recreating the window.
+        field.Frame().Resize(100, 40);
+        field.Clear();
+        field.SetCell(99, 39, Cell{U'@', Colors::Yellow, Colors::Blue});
+        field.Present();
+        if (field.Width() != 100 || field.Height() != 40 || field.BufferSize() != 4000) {
+            std::cerr << "The resized framebuffer dimensions are incorrect.\n";
+            return 1;
+        }
+        field.Frame().Resize(20, 8);
+        field.Clear();
+        field.Present();
+
         field.Close();
         if (field.IsOpen()) {
             std::cerr << "The MAT DevField window did not close when requested.\n";
@@ -33,4 +47,3 @@ int main()
     std::cout << "MAT DevField ASCII window smoke test passed.\n";
     return 0;
 }
-

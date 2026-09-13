@@ -8,15 +8,3 @@ if(MSVC)
 else()
     target_compile_options(mat_devfield_ascii_example PRIVATE -Wall -Wextra -Wpedantic)
 endif()
-
-if(WIN32)
-    add_custom_command(
-        TARGET mat_devfield_ascii_example
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:MATDevFieldASCII>
-            $<TARGET_FILE_DIR:mat_devfield_ascii_example>
-        VERBATIM
-    )
-endif()
-

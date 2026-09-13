@@ -35,7 +35,8 @@ it later without changing the public framebuffer API.
   already installed. CMake downloads a pinned SDL 3.4.10 source release and
   builds it privately.
 
-Consumers do not need to install SDL or include SDL headers.
+Consumers do not need to install SDL, include SDL headers, or deploy a MAT
+DevField/SDL DLL. The release artifact is one monolithic static library.
 
 On Linux, compiling the private SDL backend requires development headers for at
 least one desktop window system: X11 or Wayland. SDL maintains the current
@@ -74,8 +75,23 @@ FetchContent_MakeAvailable(MATDevField)
 target_link_libraries(my_program PRIVATE MATDevField::ASCII)
 ```
 
+## Use from Visual Studio
+
+MAT DevField ASCII is static. Set the project to C++17, add the MAT DevField
+`include` directory under **C/C++ > Additional Include Directories**, and add
+the directory containing `MATDevFieldASCII.lib` under **Linker > Additional
+Library Directories**. Then include the umbrella header:
+
 ```cpp
-#include <MATDevField/ASCII.hpp>
+#include <MATDevField.h>
+```
+
+The umbrella header tells MSVC to link `MATDevFieldASCII.lib` and its Windows
+system libraries. There is no DLL to copy and nothing to place beside the
+application executable.
+
+```cpp
+#include <MATDevField.h>
 
 int main()
 {

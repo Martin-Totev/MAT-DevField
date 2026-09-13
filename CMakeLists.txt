@@ -17,9 +17,9 @@ option(MAT_DEVFIELD_FETCH_SDL3 "Download SDL3 when a suitable installation is un
 
 set(MAT_DEVFIELD_SDL3_VERSION "3.4.10")
 
-# MAT DevField ASCII is a shared library with SDL linked privately. Keeping SDL
-# private prevents its types and build requirements from leaking into the public
-# C++ API.
+# MAT DevField ASCII is distributed as one monolithic static library. SDL stays
+# a private implementation detail and is folded into the final archive after
+# both libraries are built.
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(SDL3 3.4 CONFIG QUIET COMPONENTS SDL3-static)
@@ -62,14 +62,17 @@ if(NOT TARGET SDL3::SDL3-static)
     )
 endif()
 
-add_library(MATDevFieldASCII SHARED
+add_library(MATDevFieldASCII STATIC
     src/ASCII/Field.cpp
     src/ASCII/FrameBuffer.cpp
 )
 add_library(MATDevField::ASCII ALIAS MATDevFieldASCII)
 
 target_compile_features(MATDevFieldASCII PUBLIC cxx_std_17)
-target_link_libraries(MATDevFieldASCII PRIVATE SDL3::SDL3-static)
+target_link_libraries(MATDevFieldASCII
+    PRIVATE
+        $<BUILD_INTERFACE:SDL3::SDL3-static>
+)
 
 target_include_directories(MATDevFieldASCII
     PUBLIC
@@ -79,7 +82,6 @@ target_include_directories(MATDevFieldASCII
 
 target_compile_definitions(MATDevFieldASCII
     PRIVATE
-        MAT_DEVFIELD_ASCII_BUILDING_LIBRARY=1
         SDL_MAIN_HANDLED=1
 )
 
@@ -88,8 +90,21 @@ set_target_properties(MATDevFieldASCII PROPERTIES
     CXX_VISIBILITY_PRESET hidden
     EXPORT_NAME ASCII
     VISIBILITY_INLINES_HIDDEN YES
-    VERSION ${PROJECT_VERSION}
-    SOVERSION ${PROJECT_VERSION_MAJOR}
+)
+
+# A normal static-library dependency remains a separate archive. Merge SDL into
+# MATDevFieldASCII so non-CMake consumers link one .lib/.a and never deploy an
+# SDL or MAT DevField DLL.
+add_custom_command(
+    TARGET MATDevFieldASCII
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND}
+        "-DMAT_ARCHIVE=$<TARGET_FILE:MATDevFieldASCII>"
+        "-DDEPENDENCY_ARCHIVE=$<TARGET_FILE:SDL3::SDL3-static>"
+        "-DARCHIVER=${CMAKE_AR}"
+        "-DAPPLE_PLATFORM=${APPLE}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/MergeStaticLibraries.cmake"
+    VERBATIM
 )
 
 if(MSVC)
